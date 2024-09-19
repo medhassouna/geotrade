@@ -48,7 +48,6 @@ Once the application is running, open your browser and navigate to `http://local
 ### Features:
 
 - **View Trading Data**: Visualize price, volatility, and other indicators.
-- **Train Models**: Select a trading pair (e.g., ETH/USD) and train a machine learning model directly from the dashboard. The progress bar will show the real-time progress of the training process.
 - **Real-time Updates**: The application updates the trading chart and signals every 10 seconds.
 
 ## Project Structure
