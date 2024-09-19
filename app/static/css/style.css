@@ -1,0 +1,87 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  padding: 20px;
+}
+
+h1, h3 {
+  text-align: center;
+}
+
+canvas {
+  display: block;
+  margin: 0 auto;
+  width: 80%;
+}
+
+/* Grid layout container */
+.info-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two equal columns */
+  grid-gap: 20px;
+  padding: 20px;
+}
+
+/* Left and right info containers */
+.left-info, .right-info {
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.left-info h4, .right-info h4 {
+  margin: 5px 0;
+}
+
+.right-info {
+  text-align: right; /* Right-align for the right container */
+}
+
+/* Signal display in the center of the grid */
+.center-info {
+  grid-column: span 2; /* Span across both columns */
+  text-align: center;
+  padding: 10px;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Signal box styles */
+.signal-rectangle {
+  display: inline-block;
+  width: 120px;
+  border-radius: 15px;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  padding: 10px;
+}
+
+.sell {
+  display: flex;
+  justify-content: center; /* Horizontally center the content */
+  align-items: center; /* Vertically center the content */
+  width: 200px; /* Adjust width as needed */
+  border-radius: 15px;
+  margin: 0 auto; /* Center the container horizontally */
+  font-size: 18px; /* Adjust font size */
+  font-weight: bold;
+  text-align: center; /* Center the text */
+  background-color: rgba(255, 0, 0, 0.5); /* Red background with transparency */
+}
+
+.buy {
+  display: flex;
+  justify-content: center; /* Horizontally center the content */
+  align-items: center; /* Vertically center the content */
+  width: 200px; /* Adjust width as needed */
+  border-radius: 15px;
+  margin: 0 auto; /* Center the container horizontally */
+  font-size: 18px; /* Adjust font size */
+  font-weight: bold;
+  text-align: center; /* Center the text */
+  background-color: rgba(0,255,0,0.5); /* Green background with transparency */
+}
+

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trading Dashboard</title>
+
+    <!-- Load static CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+
+    <!-- Import required JavaScript libraries -->
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <!-- Load static JavaScript files from the static/js directory -->
+    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </head>
+
+  <body>
+    <h3>Trading Dashboard</h3>
+  
+    <!-- Dropdown menu for model selection -->
+    <div>
+      <select id="modelSelector">
+        <option value="eth_usd">ETH/USD</option>
+        <option value="xau_usd">XAU/USD</option>
+        <option value="btc_usd">BTC/USD</option>
+        <option value="eur_usd">EUR/USD</option>
+      </select>
+    </div>
+  
+    <!-- Chart container for trading data -->
+    <div id="tradingChart"></div>
+  
+    <!-- Grid container for trading information -->
+    <div class="info-container">
+      <!-- Left side information -->
+      <div class="left-info">
+        <h4 id="entry_price">Entry Price: N/A</h4>
+        <h4 id="stop_loss">Stop Loss: N/A</h4>
+        <h4 id="take_profit">Take Profit: N/A</h4>
+      </div>
+  
+      <!-- Right side information -->
+      <div class="right-info">
+        <h4 id="trend_label">Trend: Loading...</h4>
+        <h4 id="volatility">Volatility: Loading...</h4>
+        <h4 id="current_price">Current Price: Loading...</h4>
+        <h4 id="predicted_price">Predicted Price: Loading...</h4>        
+        <h4 id="rsi_value">Relative Strength Index: Loading...</h4>
+      </div>
+  
+      <!-- Centered signal display -->
+      <div class="center-info">
+        <div id="signalBox" class="signal-rectangle">
+          <span id="signal">Loading...</span>
+        </div>
+      </div>
+    </div>
+  
+  </body>
+  
+</html>

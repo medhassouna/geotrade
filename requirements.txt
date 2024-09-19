@@ -1,0 +1,8 @@
+Flask==2.3.2
+flask-socketio==5.3.3
+onnxruntime==1.12.1
+pandas==1.5.3
+numpy==1.23.5
+yfinance==0.1.70
+scikit-learn==1.0.2
+python-dotenv
