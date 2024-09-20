@@ -69,30 +69,39 @@ def generate_signal_with_confidence(current_price, predicted_price, rsi_value, f
     # Tolérance ajustée en fonction de la volatilité
     tolerance = 0.005 * (1 + volatility)  # Ajustement de la tolérance basé sur la volatilité
 
-    # Vérifier si le prix actuel est proche des niveaux de Fibonacci
+    # Vérifier si le prix actuel est proche des niveaux de Fibonacci (exclure les niveaux 0% et 100%)
     near_resistance = any(
-        abs(current_price - level) / level < tolerance for level in fibonacci_levels.values()
+        abs(current_price - level) / level < tolerance 
+        for level in fibonacci_levels.values() 
+        if level != fibonacci_levels['0%'] and level != fibonacci_levels['100%']
     )
 
-    # Ne pas générer de signal si l'RSI est dans une zone risquée ou si le prix est proche d'une résistance
+    # Logging for debugging
+    print(f"RSI: {rsi_value}, Near Resistance: {near_resistance}, Volatility: {volatility}, Tolerance: {tolerance}")
+
+    # Ne pas générer de signal si le RSI est trop haut/bas ou si le prix est proche d'une résistance
     if rsi_value > 70 or rsi_value < 30 or near_resistance:
         print(f"RSI trop élevé/bas ou prix proche d'une résistance, pas de signal. RSI: {rsi_value}, Proximité Fibonacci: {near_resistance}")
-        return "Hold", 0  # No signal and confidence 0
+        return "Hold", 0  # Pas de signal et confiance 0
 
-    # Calcul du niveau de confiance basé sur l'écart du prix prédit et la volatilité
+    # Calcul de la différence de prix et du niveau de confiance basé sur l'écart du prix prédit et la volatilité
     price_difference = abs(predicted_price - current_price)
     confidence = (price_difference / (current_price * tolerance)) * 100  # Confiance basée sur l'écart et la volatilité
 
-    # Cap the confidence to 100%
+    # Limiter la confiance à 100%
     confidence = min(confidence, 100)
 
     # Décision d'achat/vente basée sur le prix prédit, ajusté pour la volatilité
     if predicted_price > current_price * (1 + tolerance):  # Signal d'achat ajusté pour la volatilité
+        print(f"Signal: Buy, Confiance: {confidence}%")
         return f"Buy", confidence
     elif predicted_price < current_price * (1 - tolerance):  # Signal de vente ajusté pour la volatilité
+        print(f"Signal: Sell, Confiance: {confidence}%")
         return f"Sell", confidence
     else:
+        print(f"Signal: Hold, Confiance: 0%")
         return "Hold", 0  # No confidence for Hold signals
+
 
 
 # Calcul du stop-loss et du take-profit en fonction du signal et de la volatilité

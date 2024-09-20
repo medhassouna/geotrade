@@ -4,10 +4,15 @@
 import { calculateFibonacciLevels } from './fibonacciCalculator.js'; // Calculates Fibonacci levels
 import { updateSignalDisplay } from './signalDisplay.js'; // Updates the display of buy/sell signals
 import { updatePlot } from './plotManager.js'; // Updates the chart with new data
+import { updatePerformanceChart } from './performanceChartUpdater.js'; // Import the performance chart updater
+
+// Maintain a list of accuracy values and timestamps for performance charting
+let accuracyHistory = [];
+let timeStamps = [];
 
 // Main function to update the chart with the provided data
 export const updateChart = (data) => {
-  // console.log("Received data for chart update:", data); // Debugging received data
+  const DEBUG = false; // Set to true for debugging
 
   // Extract key values from the data object, setting defaults if values are NaN
   const actualPrice = isNaN(data.current_price) ? 0 : data.current_price;
@@ -15,16 +20,11 @@ export const updateChart = (data) => {
   const takeProfit = isNaN(data.take_profit) ? 0 : data.take_profit;
   const stopLoss = isNaN(data.stop_loss) ? 0 : data.stop_loss;
 
-  // console.log("Actual Price:", actualPrice); // Debugging actual price
-  // console.log("Signal Price:", signalPrice, "Take Profit:", takeProfit, "Stop Loss:", stopLoss); // Debugging TP and SL
-
   // Prepare real price data points with time values for the x-axis
   const realPrices = data.prices.map((price, i) => ({
     x: new Date(Date.now() - (data.prices.length - i) * 15 * 60 * 1000), // Create time intervals
     y: price, // Price values
   }));
-  
-  // console.log("Real Prices Data:", realPrices); // Debugging real prices
 
   // Set the color of the markers based on the RSI value
   const markerColors = data.rsi.map((rsiValue) => {
@@ -34,8 +34,6 @@ export const updateChart = (data) => {
       ? "rgba(255, 0, 0, 0.2)" // Red for oversold
       : "rgba(128, 128, 128, 0.2)"; // Grey for neutral RSI
   });
-
-  // console.log("Marker Colors (RSI):", markerColors); // Debugging RSI marker colors
 
   // Structure the RSI data for display on the chart
   const rsiData = {
@@ -47,27 +45,25 @@ export const updateChart = (data) => {
     yaxis: "y2", // Place on the secondary y-axis
   };
 
-  // console.log("RSI Data:", rsiData); // Debugging RSI data
-
   // Structure the predicted price data for future values
   const predictedPrices = data.predicted_prices.map((price, i) => ({
     x: new Date(Date.now() + (i + 1) * 15 * 60 * 1000), // Future time intervals
     y: price, // Predicted price values
   }));
 
-  // console.log("Predicted Prices Data:", predictedPrices); // Debugging predicted prices
-
   // Get the high and low prices from the last week to calculate Fibonacci levels
   const lastWeekPrices = data.prices.slice(-7 * 24 * 4); // Last 7 days of data (assuming 5-minute intervals)
   const high = Math.max(...lastWeekPrices); // Highest price in the last week
   const low = Math.min(...lastWeekPrices); // Lowest price in the last week
 
-  // Debugging high and low prices
-  console.log("Last Week's High:", high, "Last Week's Low:", low);
+  // Handle invalid high or low prices
+  if (isNaN(high) || isNaN(low)) {
+    console.error("Invalid high or low price for Fibonacci calculation.");
+    return;
+  }
 
   // Determine uptrend based on whether current price is closer to the week's high or low
   const uptrend = actualPrice > (high + low) / 2; 
-  console.log("Uptrend Status:", uptrend ? "Uptrend" : "Downtrend"); // Debugging uptrend status
 
   // Update the trend label in the HTML
   const trendLabel = document.getElementById('trend_label');
@@ -77,7 +73,9 @@ export const updateChart = (data) => {
   // Calculate Fibonacci levels based on whether the market is trending up or down
   const fibonacciLevels = calculateFibonacciLevels(high, low, uptrend);
 
-  console.log("Fibonacci Levels:", fibonacciLevels); // Debugging Fibonacci levels
+  if (DEBUG) {
+    console.log("Fibonacci Levels:", fibonacciLevels);
+  }
 
   // Create the trace for real prices on the chart
   const trace1 = {
@@ -110,42 +108,37 @@ export const updateChart = (data) => {
   // Combine all the data traces (real prices, predicted prices, and Fibonacci levels) into one array
   const dataTraces = [trace1, trace2, ...trace3, rsiData];
 
-  // console.log("Data Traces for Plot:", dataTraces); // Debugging all data traces
-
   // Define layout updates for shapes (TP, SL) and annotations (high/low prices)
   const layoutUpdate = {
     shapes: [
-      // TP (Take Profit) rectangle
       signalPrice && takeProfit && {
         type: "rect",
         xref: "x",
         yref: "y",
-        x0: realPrices[realPrices.length - 1].x, // Start from the last real price
-        x1: predictedPrices[predictedPrices.length - 1].x, // End at the last predicted price
-        y0: signalPrice, // Signal price as the bottom of the rectangle
-        y1: takeProfit, // Take Profit price as the top of the rectangle
-        fillcolor: "rgba(0, 255, 0, 0.2)", // Green transparent fill
-        line: { width: 0 }, // No border
+        x0: realPrices[realPrices.length - 1].x, 
+        x1: predictedPrices[predictedPrices.length - 1].x,
+        y0: signalPrice,
+        y1: takeProfit,
+        fillcolor: "rgba(0, 255, 0, 0.2)",
+        line: { width: 0 },
       },
-      // SL (Stop Loss) rectangle
       signalPrice && stopLoss && {
         type: "rect",
         xref: "x",
         yref: "y",
-        x0: realPrices[realPrices.length - 1].x, // Start from the last real price
-        x1: predictedPrices[predictedPrices.length - 1].x, // End at the last predicted price
-        y0: signalPrice, // Signal price as the top of the rectangle
-        y1: stopLoss, // Stop Loss price as the bottom of the rectangle
-        fillcolor: "rgba(255, 0, 0, 0.2)", // Red transparent fill
-        line: { width: 0 }, // No border
+        x0: realPrices[realPrices.length - 1].x,
+        x1: predictedPrices[predictedPrices.length - 1].x,
+        y0: signalPrice,
+        y1: stopLoss,
+        fillcolor: "rgba(255, 0, 0, 0.2)",
+        line: { width: 0 },
       },
-    ].filter(Boolean), // Ensure only valid shapes are included
+    ].filter(Boolean),
 
     annotations: [
-      // Annotation for the highest price of the week
       {
-        x: new Date(), // Current date
-        y: high, // Position at the highest price
+        x: new Date(),
+        y: high,
         xref: "x",
         yref: "y",
         text: `Highest Price: $${high.toFixed(2)}`,
@@ -155,10 +148,9 @@ export const updateChart = (data) => {
         ay: -40,
         font: { color: "green" },
       },
-      // Annotation for the lowest price of the week
       {
-        x: new Date(), // Current date
-        y: low, // Position at the lowest price
+        x: new Date(),
+        y: low,
         xref: "x",
         yref: "y",
         text: `Lowest Price: $${low.toFixed(2)}`,
@@ -171,11 +163,51 @@ export const updateChart = (data) => {
     ],
   };
 
-  // console.log("Layout Update:", layoutUpdate); // Debugging layout updates
-
   // Call the updatePlot function to update the chart with the new data and layout
   updatePlot('tradingChart', dataTraces, layoutUpdate);
 
   // Call the updateSignalDisplay function to update the signal display (e.g., Buy/Sell signals)
   updateSignalDisplay(data);
+};
+
+// Function to handle performance updates
+export const handlePerformanceUpdate = (socket) => {
+  socket.on('update_performance', (data) => {
+    // Append new performance data
+    accuracyHistory.push(data.accuracy);
+    timeStamps.push(data.timestamp);
+
+    // Prepare the accuracy data trace
+    const accuracyData = {
+      x: timeStamps,
+      y: accuracyHistory,
+      mode: 'lines+markers',
+      name: 'Model Accuracy',
+      line: { color: 'green' }
+    };
+
+    // Plot the accuracy data on the performance chart
+    updatePlot('performanceChart', [accuracyData], {
+      title: 'Model Accuracy Over Time',
+      xaxis: { title: 'Timestamp' },
+      yaxis: { title: 'Accuracy', range: [0, 1] }
+    });
+  });
+};
+
+// Function to initialize the WebSocket connection and request data every 10 seconds
+export const initializeSocket = (socket, updateChart) => {
+  // Listen for updates from the server on the "update_chart" event
+  socket.on("update_chart", updateChart);
+
+  // Listen for performance updates
+  socket.on('update_performance', (data) => {
+    console.log('Received performance data:', data);
+    updatePerformanceChart(data);
+  });
+
+  // Request data from the server every 10 seconds
+  setInterval(() => {
+    socket.emit("request_data");
+  }, 10000); // 10 seconds interval
 };

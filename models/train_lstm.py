@@ -1,11 +1,11 @@
-# ../models/train_lstm.py
 import torch
 import torch.nn as nn
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from torch.utils.data import DataLoader, TensorDataset
-from ..routes import update_training_progress  # Import the progress function for real-time updates
+import argparse
+import threading
 
 # LSTM Model Definition
 class LSTMModel(nn.Module):
@@ -26,13 +26,10 @@ def create_sequences(data, seq_length):
         sequences.append(data[i:i + seq_length])
     return np.array(sequences)
 
-# Function to train a model and send progress to the front-end
+# Function to train a model
 def train_model(model, train_loader, epochs=10):
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-    total_batches = len(train_loader) * epochs
-    processed_batches = 0
 
     for epoch in range(epochs):
         for inputs, labels in train_loader:
@@ -42,21 +39,18 @@ def train_model(model, train_loader, epochs=10):
             loss.backward()
             optimizer.step()
 
-            processed_batches += 1
-            progress = (processed_batches / total_batches) * 100
-            update_training_progress(progress)  # Send real-time progress to the front-end
-
         print(f'Epoch {epoch+1}, Loss: {loss.item()}')
 
 # Function to save a model to ONNX format
 def save_model_to_onnx(model, seq_length, filename):
     dummy_input = torch.randn(1, seq_length - 1, 1)  # Adjust shape as needed
-    torch.onnx.export(model, dummy_input, filename,
-                      input_names=['input'], output_names=['output'])
+    torch.onnx.export(model, dummy_input, filename, input_names=['input'], output_names=['output'])
 
 # Load and preprocess data
 def load_and_preprocess_data(file_path, seq_length):
+    print(f"Loading data from {file_path}")
     df = pd.read_csv(file_path)
+    print(f"Data loaded. First few rows:\n{df.head()}")
     scaler = MinMaxScaler()
     scaled_data = scaler.fit_transform(df['Close'].values.reshape(-1, 1))
 
@@ -71,34 +65,56 @@ def load_and_preprocess_data(file_path, seq_length):
 
     return train_loader, scaler
 
-# Main function to start model training based on user selection
-def start_training(model_type):
-    seq_length = 60  # Using 60 as the sequence length for both models
+# Function to start model training
+def start_training(model_type, csv_path, model_name, seq_length=60):
+    # Load and preprocess data
+    print(f"Training LSTM model on {model_type} interval data...")
+    train_loader, _ = load_and_preprocess_data(csv_path, seq_length)
 
-    if model_type == "eth_usd_lstm_15min":
-        # Load and preprocess 15-minute interval data
-        print("Training LSTM model on 15-minute interval data...")
-        train_loader_15min, scaler_15min = load_and_preprocess_data('eth_usd_15min.csv', seq_length)
+    # Define the LSTM model
+    input_size = 1
+    hidden_size = 50
+    output_size = 1
+    model = LSTMModel(input_size, hidden_size, output_size)
 
-        # Define and train the 15-minute LSTM model
-        input_size = 1
-        hidden_size = 50
-        output_size = 1
-        model_15min = LSTMModel(input_size, hidden_size, output_size)
-        train_model(model_15min, train_loader_15min, epochs=10)
-        save_model_to_onnx(model_15min, seq_length, "eth_usd_lstm_15min.onnx")
+    # Train the model
+    train_model(model, train_loader, epochs=10)
 
-    elif model_type == "eth_usd_lstm_hourly":
-        # Load and preprocess hourly interval data
-        print("Training LSTM model on hourly interval data...")
-        train_loader_hourly, scaler_hourly = load_and_preprocess_data('eth_usd_hourly.csv', seq_length)
+    # Save the model to ONNX format
+    save_model_to_onnx(model, seq_length, f"{model_name}.onnx")
+    print(f"{model_name} has been trained and saved.")
 
-        # Define and train the hourly LSTM model
-        input_size = 1
-        hidden_size = 50
-        output_size = 1
-        model_hourly = LSTMModel(input_size, hidden_size, output_size)
-        train_model(model_hourly, train_loader_hourly, epochs=10)
-        save_model_to_onnx(model_hourly, seq_length, "eth_usd_lstm_hourly.onnx")
+# Main function to handle command-line arguments and run both models simultaneously
+if __name__ == "__main__":
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='Train LSTM models for 15min and hourly ETH-USD data.')
+    parser.add_argument('--run_both', action='store_true', help='Run both 15min and hourly models simultaneously')
+    
+    args = parser.parse_args()
 
-    print(f"{model_type} has been trained and saved.")
+    # Paths for the data files
+    csv_path_15min = 'D:/trading_scripts/geotrade/models/eth_usd_15min.csv'
+    csv_path_hourly = 'D:/trading_scripts/geotrade/models/eth_usd_hourly.csv'
+
+    # Run both models simultaneously
+    if args.run_both:
+        print("Running both 15min and hourly models...")
+
+        # Thread for 15min model
+        thread_15min = threading.Thread(target=start_training, args=("15-minute", csv_path_15min, "eth_usd_lstm_15min"))
+
+        # Thread for hourly model
+        thread_hourly = threading.Thread(target=start_training, args=("hourly", csv_path_hourly, "eth_usd_lstm_hourly"))
+
+        # Start both threads
+        thread_15min.start()
+        thread_hourly.start()
+
+        # Wait for both threads to finish
+        thread_15min.join()
+        thread_hourly.join()
+
+        print("Both models have been trained.")
+    else:
+        # Default: Run one model (you can choose which one)
+        start_training("15-minute", csv_path_15min, "eth_usd_lstm_15min")
